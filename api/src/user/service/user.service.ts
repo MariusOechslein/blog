@@ -17,6 +17,7 @@ export class UserService {
   }
 
   findOne(id: number): Observable<User> {
+    // Bug: falls id nicht gefunden wird, wird einfach der erste User Eintrag zurückgegeben
     return from(this.userRepository.findOne({ where: { id: id } }));
   }
 
