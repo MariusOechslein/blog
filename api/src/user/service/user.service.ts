@@ -13,7 +13,8 @@ export class UserService {
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
     private authService: AuthService,
-  ) {}
+  ) {
+  }
 
   create(user: User): Observable<User> {
     // return from(this.userRepository.save(user));
@@ -24,9 +25,10 @@ export class UserService {
         newUser.username = user.username;
         newUser.email = user.email;
         newUser.password = passwordHash;
+        newUser.role = user.role;
         return from(this.userRepository.save(newUser)).pipe(
           map((user: User) => {
-            const { password, ...result } = user;
+            const {password, ...result} = user;
             return result;
           }),
           catchError((err) => throwError(err)),
@@ -38,9 +40,13 @@ export class UserService {
   findOne(id: number): Observable<User> {
     // Bug: falls id nicht gefunden wird, wird einfach der erste User Eintrag zurückgegeben
     //return from(this.userRepository.findOne({ where: { id: id } }));
-    return from(this.userRepository.findOne({ where: { id: id } })).pipe(
+    return from(this.userRepository.findOne({where: {id: id}})).pipe(
       map((user: User) => {
-        const { password, ...result } = user;
+        const {password, ...result} = user;
+        /*if (result.id == 4 && id != 4) {
+          // Bug that nextjs findOne always return first user in database when no user is found
+          return {};
+        }*/
         return result;
       }),
     );
@@ -68,6 +74,10 @@ export class UserService {
     return from(this.userRepository.update(id, user));
   }
 
+  updateUserRole(id: number, user: User): Observable<any> {
+    return from(this.userRepository.update(id, user));
+  }
+
   login(user: User): Observable<string> {
     return this.validateUser(user.email, user.password).pipe(
       switchMap((user: User) => {
@@ -91,7 +101,7 @@ export class UserService {
           this.authService.comparePasswords(password, user.password).pipe(
             map((match: boolean) => {
               if (match) {
-                const { password, ...result } = user;
+                const {password, ...result} = user;
                 return result;
               } else {
                 throw Error;
@@ -104,6 +114,6 @@ export class UserService {
   }
 
   findByMail(email: string): Observable<User> {
-    return from(this.userRepository.findOne({ where: { email: email } }));
+    return from(this.userRepository.findOne({where: {email: email}}));
   }
 }
