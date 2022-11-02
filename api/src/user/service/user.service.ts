@@ -4,8 +4,13 @@ import { UserEntity } from '../models/user.entity';
 import { Repository } from 'typeorm';
 import { from, Observable, throwError } from 'rxjs';
 import { switchMap, map, catchError } from 'rxjs/operators';
-import { User } from '../models/user.interface';
+import { User, UserRole } from '../models/user.interface';
 import { AuthService } from '../../auth/services/auth.service';
+import {
+  paginate,
+  Pagination,
+  IPaginationOptions,
+} from 'nestjs-typeorm-paginate';
 
 @Injectable()
 export class UserService {
@@ -13,8 +18,7 @@ export class UserService {
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
     private authService: AuthService,
-  ) {
-  }
+  ) {}
 
   create(user: User): Observable<User> {
     // return from(this.userRepository.save(user));
@@ -25,10 +29,10 @@ export class UserService {
         newUser.username = user.username;
         newUser.email = user.email;
         newUser.password = passwordHash;
-        newUser.role = user.role;
+        newUser.role = UserRole.USER;
         return from(this.userRepository.save(newUser)).pipe(
           map((user: User) => {
-            const {password, ...result} = user;
+            const { password, ...result } = user;
             return result;
           }),
           catchError((err) => throwError(err)),
@@ -40,9 +44,9 @@ export class UserService {
   findOne(id: number): Observable<User> {
     // Bug: falls id nicht gefunden wird, wird einfach der erste User Eintrag zurückgegeben
     //return from(this.userRepository.findOne({ where: { id: id } }));
-    return from(this.userRepository.findOne({where: {id: id}})).pipe(
+    return from(this.userRepository.findOne({ where: { id: id } })).pipe(
       map((user: User) => {
-        const {password, ...result} = user;
+        const { password, ...result } = user;
         /*if (result.id == 4 && id != 4) {
           // Bug that nextjs findOne always return first user in database when no user is found
           return {};
@@ -52,14 +56,13 @@ export class UserService {
     );
   }
 
-  findAll(): Observable<User[]> {
-    //return from(this.userRepository.find());
-    return from(this.userRepository.find()).pipe(
-      map((users: UserEntity[]) => {
-        users.forEach(function (v) {
+  paginate(options: IPaginationOptions): Observable<Pagination<User>> {
+    return from(paginate<User>(this.userRepository, options)).pipe(
+      map((usersPageable: Pagination<User>) => {
+        usersPageable.items.forEach(function (v) {
           delete v.password;
         });
-        return users;
+        return usersPageable;
       }),
     );
   }
@@ -71,6 +74,8 @@ export class UserService {
   updateOne(id: number, user: User): Observable<any> {
     delete user.email;
     delete user.password;
+    delete user.role;
+
     return from(this.userRepository.update(id, user));
   }
 
@@ -101,7 +106,7 @@ export class UserService {
           this.authService.comparePasswords(password, user.password).pipe(
             map((match: boolean) => {
               if (match) {
-                const {password, ...result} = user;
+                const { password, ...result } = user;
                 return result;
               } else {
                 throw Error;
@@ -114,6 +119,6 @@ export class UserService {
   }
 
   findByMail(email: string): Observable<User> {
-    return from(this.userRepository.findOne({where: {email: email}}));
+    return from(this.userRepository.findOne({ where: { email: email } }));
   }
 }

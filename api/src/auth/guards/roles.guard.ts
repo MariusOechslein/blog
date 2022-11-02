@@ -9,7 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { UserService } from '../../user/service/user.service';
 import { Observable } from 'rxjs';
 import { User } from '../../user/models/user.interface';
-import {map} from "rxjs/operators";
+import { map } from 'rxjs/operators';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
